@@ -2,81 +2,93 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
+	"time"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/nlopes/slack"
 )
 
 var config = struct {
-	sAPI  string
-	sChat string
-	tAPI  string
-	tChat string
+	sAPIKey string
+	sChat   string
+	tAPIKey string
+	tChat   int64
+	api     *slack.Client
+	rtm     *slack.RTM
 }{
-	sAPI:  "PLEASE_CHANGE_ME",
-	sChat: "PLEASE_CHANGE_ME",
-	tAPI:  "PLEASE_CHANGE_ME",
-	tChat: "PLEASE_CHANGE_ME",
+	sAPIKey: "PLEASE_CHANGE_ME",
+	sChat:   "PLEASE_CHANGE_ME",
+	tAPIKey: "PLEASE_CHANGE_ME",
+	tChat:   0, // PLEASE CHANGE ME
 }
 
 func init() {
-	sAPIF := flag.String("slack-api-key", "", "SlackBot API KEY")
+	sAPIKeyF := flag.String("slack-api-key", "", "SlackBot API KEY")
 	sChatF := flag.String("slack-channel", "", "SlackBot Channel ID")
-	tAPIF := flag.String("telegram-api-key", "", "Telegram API KEY")
-	tChatF := flag.String("telegram-channel", "", "Telegram Channel ID")
+	tAPIKeyF := flag.String("telegram-api-key", "", "Telegram API KEY")
+	tChatF := flag.Int64("telegram-channel", 0, "Telegram Channel ID")
 	flag.Parse()
 
-	config.sAPI = *sAPIF
+	config.sAPIKey = *sAPIKeyF
 	config.sChat = *sChatF
-	config.tAPI = *tAPIF
+	config.tAPIKey = *tAPIKeyF
 	config.tChat = *tChatF
 }
 
 func main() {
-	api := slack.New(config.sAPI)
+	// Slack client initialize
+	config.api = slack.New(config.sAPIKey)
 	logger := log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)
 	slack.SetLogger(logger)
-	api.SetDebug(true)
+	config.api.SetDebug(false)
+	config.rtm = config.api.NewRTM()
+	go config.rtm.ManageConnection()
 
-	rtm := api.NewRTM()
+	// Gate from tg to slck
+	// Main loop
 
-	go rtm.ManageConnection()
+	// Telegram initialize
+	bot, err := tgbotapi.NewBotAPI(config.tAPIKey)
+	if err != nil {
+		log.Printf("Bot poller: Something wrong with your key, %s", config.tAPIKey)
+		log.Panic(err)
+	}
 
-	for msg := range rtm.IncomingEvents {
-		fmt.Print("Event Received: ")
-		switch ev := msg.Data.(type) {
-		case *slack.HelloEvent:
-			// Ignore hello
-
-		case *slack.ConnectedEvent:
-			fmt.Println("Infos:", ev.Info)
-			fmt.Println("Connection counter:", ev.ConnectionCount)
-			// Replace C94CCHD8A with your Channel ID
-			rtm.SendMessage(rtm.NewOutgoingMessage("Hello world", config.sChat))
-
-		case *slack.MessageEvent:
-			fmt.Printf("Message: %v\n", ev)
-			rtm.SendMessage(rtm.NewOutgoingMessage("Test", config.sChat))
-
-		case *slack.PresenceChangeEvent:
-			fmt.Printf("Presence Change: %v\n", ev)
-
-		case *slack.LatencyReport:
-			fmt.Printf("Current latency: %v\n", ev.Value)
-
-		case *slack.RTMError:
-			fmt.Printf("Error: %s\n", ev.Error())
-
-		case *slack.InvalidAuthEvent:
-			fmt.Printf("Invalid credentials")
-			return
-
-		default:
-
-			// Ignore other events..
-			fmt.Printf("Unexpected: %v\n", msg.Data)
+	bot.Debug = false
+	log.Printf("Bot poller: Authorized on account %s", bot.Self.UserName)
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
+	updates, err := bot.GetUpdatesChan(u)
+	for {
+		select {
+		case update := <-updates:
+			if update.Message == nil {
+				continue
+			}
+			firstname := update.Message.From.FirstName
+			lastname := update.Message.From.LastName
+			text := update.Message.Text
+			date := update.Message.Date
+			currentChatID := update.Message.Chat.ID
+			log.Printf("Current chat: %d, from command line: %d", currentChatID, config.tChat)
+			if currentChatID != config.tChat {
+				log.Printf("Bot poller: Wrong chat: %d FirstName: %s LastName: %s", currentChatID, firstname, lastname)
+				continue
+			} else {
+				log.Println("Bot Poller: Start updating. Updater come in.")
+				slckSender(config.rtm, date, text, firstname, lastname)
+			}
 		}
 	}
+}
+
+func slckSender(rtm *slack.RTM, date int, text string, firstname string, lastname string) {
+	log.Println("Message from bot received")
+	message := "Infra Announce: " + text + " " +
+		time.Unix(int64(date), 0).Format("Mon Jan _2 15:04") +
+		" from " + firstname + " " + lastname
+	rtm.SendMessage(rtm.NewOutgoingMessage(message, config.sChat))
+	time.Sleep(time.Second)
 }
