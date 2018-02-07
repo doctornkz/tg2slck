@@ -5,7 +5,7 @@ Brings messages from Telegram chat to Slack channel. Simple but efficient.
 
 ### Usage:
 ```
-https://github.com/doctornkz/tg2slck.git
+git clone https://github.com/doctornkz/tg2slck.git
 ./tg2slck -slack-api-key=<SLACK_BOT_API_KEY> \
 -slack-channel=<SLACK_CHANNEL_ID>  \
 -telegram-api-key=<TELEGRAM_BOT_API_KEY> \
