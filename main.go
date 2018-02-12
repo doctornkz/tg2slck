@@ -10,6 +10,7 @@ import (
 	"github.com/nlopes/slack"
 )
 
+// Configuration and defaults for hardcoded binary mode
 var config = struct {
 	sAPIKey string
 	sChat   string
@@ -24,11 +25,24 @@ var config = struct {
 	tChat:   0, // PLEASE CHANGE ME
 }
 
+// TODO: Support full mesh syncronizing:  API_1+Chat_1, API_2+Chat_2,[API_N+Chat_N]...
+
+// ChanPost - message structure, some methods are not mirrored from Message, beware.
+type ChanPost struct {
+	date int
+	text string
+	/*
+		firstname string  // In Bot API 3.5 From  methods //
+		lastname  string  //     ===  UNSUPPORTED ===     //
+	*/
+}
+
+// Command-line processing
 func init() {
-	sAPIKeyF := flag.String("slack-api-key", "", "SlackBot API KEY")
-	sChatF := flag.String("slack-channel", "", "SlackBot Channel ID")
-	tAPIKeyF := flag.String("telegram-api-key", "", "Telegram API KEY")
-	tChatF := flag.Int64("telegram-channel", 0, "Telegram Channel ID")
+	sAPIKeyF := flag.String("slack-api-key", config.sAPIKey, "SlackBot API KEY")
+	sChatF := flag.String("slack-channel", config.sChat, "SlackBot Channel ID")
+	tAPIKeyF := flag.String("telegram-api-key", config.tAPIKey, "Telegram API KEY")
+	tChatF := flag.Int64("telegram-channel", config.tChat, " Telegram Channel ID (default 0)")
 	flag.Parse()
 
 	config.sAPIKey = *sAPIKeyF
@@ -46,14 +60,18 @@ func main() {
 	config.rtm = config.api.NewRTM()
 	go config.rtm.ManageConnection()
 
-	// Gate from tg to slck
-	// Main loop
+	/*
+
+		Main loop based on infinite FOR around telegram updates.ChanPost
+		 If you want to have duplex sync, change it to go routine logic.
+
+	*/
 
 	// Telegram initialize
 	bot, err := tgbotapi.NewBotAPI(config.tAPIKey)
 	if err != nil {
-		log.Printf("Bot poller: Something wrong with your key, %s", config.tAPIKey)
-		log.Panic(err)
+		log.Printf("Check Telegram API Key: %v", err)
+		os.Exit(1)
 	}
 
 	bot.Debug = false
@@ -61,34 +79,45 @@ func main() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates, err := bot.GetUpdatesChan(u)
+	if err != nil {
+		log.Printf("Updates error: %v", err)
+		os.Exit(1)
+	}
+
+	/*
+		ChannelPost is Message's equivalent for
+		channel management. To use Chat-Mode,
+		feel free to replace ChannetPost to Message.
+	*/
+
 	for {
 		select {
 		case update := <-updates:
-			if update.Message == nil {
+			if update.ChannelPost == nil {
+				log.Println("Nil message, continue")
 				continue
 			}
-			firstname := update.Message.From.FirstName
-			lastname := update.Message.From.LastName
-			text := update.Message.Text
-			date := update.Message.Date
-			currentChatID := update.Message.Chat.ID
+			// Structure updating
+			cp := ChanPost{date: update.ChannelPost.Date, text: update.ChannelPost.Text}
+			// Check permission. Bot send nothing to irrelevant chat.
+			currentChatID := update.ChannelPost.Chat.ID
 			log.Printf("Current chat: %d, from command line: %d", currentChatID, config.tChat)
 			if currentChatID != config.tChat {
-				log.Printf("Bot poller: Wrong chat: %d FirstName: %s LastName: %s", currentChatID, firstname, lastname)
+				log.Printf("Bot poller: Wrong chat: %d ", currentChatID)
 				continue
 			} else {
-				log.Println("Bot Poller: Start updating. Updater come in.")
-				slckSender(config.rtm, date, text, firstname, lastname)
+				log.Println("Bot Poller: Send message to slack channel")
+				cp.slckSend(config.rtm)
 			}
 		}
 	}
 }
 
-func slckSender(rtm *slack.RTM, date int, text string, firstname string, lastname string) {
+// Sending to Slack channel function.
+func (c *ChanPost) slckSend(rtm *slack.RTM) {
 	log.Println("Message from bot received")
-	message := "Infra Announce: " + text + " " +
-		time.Unix(int64(date), 0).Format("Mon Jan _2 15:04") +
-		" from " + firstname + " " + lastname
+	message := "Infra Announce: " + c.text + " " +
+		time.Unix(int64(c.date), 0).Format("Mon Jan _2 15:04") +
+		"(from telegram channel)"
 	rtm.SendMessage(rtm.NewOutgoingMessage(message, config.sChat))
-	time.Sleep(time.Second)
 }
