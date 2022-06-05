@@ -8,7 +8,6 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/slack-go/slack"
-	//"github.com/nlopes/slack"
 )
 
 // Configuration and defaults for hardcoded binary mode
@@ -55,9 +54,6 @@ func init() {
 func main() {
 	// Slack client initialize
 	config.api = slack.New(config.sAPIKey)
-	//logger := log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)
-	//slack.SetLogger(logger)
-	//config.api.SetDebug(false)
 	config.rtm = config.api.NewRTM()
 	go config.rtm.ManageConnection()
 
