@@ -23,3 +23,9 @@ jobs:
             name: 'tg2slck'
             compress: 'true'
             dest: 'dist'
+      - name: Release artifacts
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "tg2slck-linux-amd64.tar.gz,tg2slck-darwin-amd64.tar.gz,tg2slck-windows-amd64.tar.gz"
+          # bodyFile: "body.md"
+          token: ${{ secrets.GITHUB_TOKEN }}
