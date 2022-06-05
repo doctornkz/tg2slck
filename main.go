@@ -54,9 +54,9 @@ func init() {
 func main() {
 	// Slack client initialize
 	config.api = slack.New(config.sAPIKey)
-	logger := log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)
-	slack.SetLogger(logger)
-	config.api.SetDebug(false)
+	//logger := log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)
+	//slack.SetLogger(logger)
+	//config.api.SetDebug(false)
 	config.rtm = config.api.NewRTM()
 	go config.rtm.ManageConnection()
 
