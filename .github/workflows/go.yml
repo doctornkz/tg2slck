@@ -23,3 +23,10 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Automatic Releases
+      uses: marvinpinto/action-automatic-releases@v1.2.1
