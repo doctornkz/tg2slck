@@ -7,7 +7,8 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
+	//"github.com/nlopes/slack"
 )
 
 // Configuration and defaults for hardcoded binary mode
