@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.0.2
       - name: Generate build files
         uses: thatisuday/go-cross-build@v1.0.2
         with:
@@ -25,15 +25,12 @@ jobs:
             dest: 'dist'
       - name: Release artifacts
         uses: ncipollo/release-action@v1.10.0
-        env: 
-          NAME: ${{ github.event.repository.name }}
         with:
           artifacts: > 
             dist/${{ github.event.repository.name }}-linux-amd64,
-            dist/tg2slck-linux-arm64,
-            dist/tg2slck-darwin-amd64,
-            dist/tg2slck-darwin-arm64,
-            dist/tg2slck-windows-amd64.exe
-          tag: ""
+            dist/${{ github.event.repository.name }}-linux-arm64,
+            dist/${{ github.event.repository.name }}-darwin-amd64,
+            dist/${{ github.event.repository.name }}-darwin-arm64,
+            dist/${{ github.event.repository.name }}-windows-amd64.exe
           allowUpdates: 'true'
           token: ${{ secrets.GITHUB_TOKEN }}
