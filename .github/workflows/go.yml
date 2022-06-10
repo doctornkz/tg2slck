@@ -29,4 +29,5 @@ jobs:
           artifacts: "tg2slck-linux-amd64.tar.gz,tg2slck-darwin-amd64.tar.gz,tg2slck-windows-amd64.tar.gz"
           # bodyFile: "body.md"
           tag: ""
+          allowUpdates: 'true'
           token: ${{ secrets.GITHUB_TOKEN }}
