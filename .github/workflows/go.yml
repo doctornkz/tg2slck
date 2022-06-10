@@ -26,7 +26,7 @@ jobs:
       - name: Release artifacts
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "dist/tg2slck-linux-amd64.tar.gz,dist/tg2slck-darwin-amd64.tar.gz,dist/tg2slck-windows-amd64.tar.gz"
+          artifacts: "dist/tg2slck-linux-amd64,dist/tg2slck-darwin-amd64,dist/tg2slck-windows-amd64.exe"
           # bodyFile: "body.md"
           tag: ""
           allowUpdates: 'true'
