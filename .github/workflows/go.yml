@@ -13,14 +13,18 @@ jobs:
     name: Generate cross-platform builds
     runs-on: ubuntu-latest
     steps:
+      - name: Get project name
+        run: echo "PROJECT_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
       - name: Checkout the repository
         uses: actions/checkout@v2
       - name: Generate build files
         uses: thatisuday/go-cross-build@v1.0.2
+        env:
+          PROJECT_NAME: ${{ env.PROJECT_NAME }}
         with:
             platforms: 'linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64'
             package: ''
-            name: 'tg2slck'
+            name: '${PROJECT_NAME}'
             compress: 'false'
             dest: 'dist'
       - name: Release artifacts
