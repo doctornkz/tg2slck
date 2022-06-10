@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Get project name
         run: echo "PROJECT_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
+      - name: Test project env
+        run: echo ${PROJECT_NAME}
       - name: Checkout the repository
         uses: actions/checkout@v2
       - name: Generate build files
@@ -24,7 +26,7 @@ jobs:
         with:
             platforms: 'linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64'
             package: ''
-            name: ${PROJECT_NAME}
+            name: ${{ PROJECT_NAME }}
             compress: 'false'
             dest: 'dist'
       - name: Release artifacts
